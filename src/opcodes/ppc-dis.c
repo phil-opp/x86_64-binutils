@@ -1,5 +1,5 @@
 /* ppc-dis.c -- Disassemble PowerPC instructions
-   Copyright (C) 1994-2016 Free Software Foundation, Inc.
+   Copyright (C) 1994-2017 Free Software Foundation, Inc.
    Written by Ian Lance Taylor, Cygnus Support
 
    This file is part of the GNU opcodes library.
@@ -105,6 +105,11 @@ struct ppc_mopt ppc_opts[] = {
     0 },
   { "com",     PPC_OPCODE_COMMON,
     0 },
+  { "e200z4",  (PPC_OPCODE_PPC | PPC_OPCODE_BOOKE| PPC_OPCODE_SPE
+		| PPC_OPCODE_ISEL | PPC_OPCODE_EFS | PPC_OPCODE_BRLOCK
+		| PPC_OPCODE_PMR | PPC_OPCODE_CACHELCK | PPC_OPCODE_RFMCI
+		| PPC_OPCODE_E500 | PPC_OPCODE_E200Z4),
+    PPC_OPCODE_VLE },
   { "e300",    PPC_OPCODE_PPC | PPC_OPCODE_E300,
     0 },
   { "e500",    (PPC_OPCODE_PPC | PPC_OPCODE_BOOKE | PPC_OPCODE_SPE
@@ -231,7 +236,7 @@ get_powerpc_dialect (struct disassemble_info *info)
 
   /* Disassemble according to the section headers flags for VLE-mode.  */
   if (dialect & PPC_OPCODE_VLE
-      && info->section->owner != NULL
+      && info->section != NULL && info->section->owner != NULL
       && bfd_get_flavour (info->section->owner) == bfd_target_elf_flavour
       && elf_object_id (info->section->owner) == PPC32_ELF_DATA
       && (elf_section_flags (info->section) & SHF_PPC_VLE) != 0)

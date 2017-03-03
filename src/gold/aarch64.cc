@@ -1,6 +1,6 @@
 // aarch64.cc -- aarch64 target support for gold.
 
-// Copyright (C) 2014-2016 Free Software Foundation, Inc.
+// Copyright (C) 2014-2017 Free Software Foundation, Inc.
 // Written by Jing Yu <jingyu@google.com> and Han Shen <shenhan@google.com>.
 
 // This file is part of gold.
@@ -156,7 +156,7 @@ public:
     uint64_t imm = ((adrp >> 29) & mask2) | (((adrp >> 5) & mask19) << 2);
     // Retrieve msb of 21-bit-signed imm for sign extension.
     uint64_t msbt = (imm >> 20) & 1;
-    // Real value is imm multipled by 4k. Value now has 33-bit information.
+    // Real value is imm multiplied by 4k. Value now has 33-bit information.
     int64_t value = imm << 12;
     // Sign extend to 64-bit by repeating msbt 31 (64-33) times and merge it
     // with value.
@@ -1022,7 +1022,7 @@ public:
   { this->erratum_address_ = addr; }
 
   // Comparator used to group Erratum_stubs in a set by (obj, shndx,
-  // sh_offset). We do not include 'type' in the calculation, becuase there is
+  // sh_offset). We do not include 'type' in the calculation, because there is
   // at most one stub type at (obj, shndx, sh_offset).
   bool
   operator<(const Erratum_stub<size, big_endian>& k) const
@@ -2044,9 +2044,9 @@ AArch64_relobj<size, big_endian>::do_relocate_sections(
     const unsigned char* pshdrs, Output_file* of,
     typename Sized_relobj_file<size, big_endian>::Views* pviews)
 {
-  // Call parent to relocate sections.
-  Sized_relobj_file<size, big_endian>::do_relocate_sections(symtab, layout,
-							    pshdrs, of, pviews);
+  // Relocate the section data.
+  this->relocate_section_range(symtab, layout, pshdrs, of, pviews,
+			       1, this->shnum() - 1);
 
   // We do not generate stubs if doing a relocatable link.
   if (parameters->options().relocatable())
@@ -3865,6 +3865,8 @@ Target_aarch64<size, big_endian>::scan_reloc_section_for_stubs(
 	  if (!is_defined_in_discarded_section)
 	    {
 	      typedef Sized_relobj_file<size, big_endian> ObjType;
+	      if (psymval->is_section_symbol())
+		symval.set_is_section_symbol();
 	      typename ObjType::Compute_final_local_value_status status =
 		object->compute_final_local_value(r_sym, psymval, &symval,
 						  relinfo->symtab);
@@ -6026,6 +6028,23 @@ Target_aarch64<size, big_endian>::Scan::local(
       }
       break;
 
+    case elfcpp::R_AARCH64_MOVW_UABS_G0:        // 263
+    case elfcpp::R_AARCH64_MOVW_UABS_G0_NC:     // 264
+    case elfcpp::R_AARCH64_MOVW_UABS_G1:        // 265
+    case elfcpp::R_AARCH64_MOVW_UABS_G1_NC:     // 266
+    case elfcpp::R_AARCH64_MOVW_UABS_G2:        // 267
+    case elfcpp::R_AARCH64_MOVW_UABS_G2_NC:     // 268
+    case elfcpp::R_AARCH64_MOVW_UABS_G3:        // 269
+    case elfcpp::R_AARCH64_MOVW_SABS_G0:        // 270
+    case elfcpp::R_AARCH64_MOVW_SABS_G1:        // 271
+    case elfcpp::R_AARCH64_MOVW_SABS_G2:        // 272
+      if (parameters->options().output_is_position_independent())
+	{
+	  gold_error(_("%s: unsupported reloc %u in pos independent link."),
+		     object->name().c_str(), r_type);
+	}
+      break;
+
     case elfcpp::R_AARCH64_LD_PREL_LO19:        // 273
     case elfcpp::R_AARCH64_ADR_PREL_LO21:       // 274
     case elfcpp::R_AARCH64_ADR_PREL_PG_HI21:    // 275
@@ -6308,6 +6327,23 @@ Target_aarch64<size, big_endian>::Scan::global(
       if (gsym->needs_plt_entry())
 	{
 	  target->make_plt_entry(symtab, layout, gsym);
+	}
+      break;
+
+    case elfcpp::R_AARCH64_MOVW_UABS_G0:        // 263
+    case elfcpp::R_AARCH64_MOVW_UABS_G0_NC:     // 264
+    case elfcpp::R_AARCH64_MOVW_UABS_G1:        // 265
+    case elfcpp::R_AARCH64_MOVW_UABS_G1_NC:     // 266
+    case elfcpp::R_AARCH64_MOVW_UABS_G2:        // 267
+    case elfcpp::R_AARCH64_MOVW_UABS_G2_NC:     // 268
+    case elfcpp::R_AARCH64_MOVW_UABS_G3:        // 269
+    case elfcpp::R_AARCH64_MOVW_SABS_G0:        // 270
+    case elfcpp::R_AARCH64_MOVW_SABS_G1:        // 271
+    case elfcpp::R_AARCH64_MOVW_SABS_G2:        // 272
+      if (parameters->options().output_is_position_independent())
+	{
+	  gold_error(_("%s: unsupported reloc %u in pos independent link."),
+		     object->name().c_str(), r_type);
 	}
       break;
 
@@ -6993,6 +7029,23 @@ Target_aarch64<size, big_endian>::Relocate::relocate(
 	view, object, psymval, addend, address, reloc_property);
       break;
 
+    case elfcpp::R_AARCH64_MOVW_UABS_G0:
+    case elfcpp::R_AARCH64_MOVW_UABS_G0_NC:
+    case elfcpp::R_AARCH64_MOVW_UABS_G1:
+    case elfcpp::R_AARCH64_MOVW_UABS_G1_NC:
+    case elfcpp::R_AARCH64_MOVW_UABS_G2:
+    case elfcpp::R_AARCH64_MOVW_UABS_G2_NC:
+    case elfcpp::R_AARCH64_MOVW_UABS_G3:
+      reloc_status = Reloc::template rela_general<32>(
+	view, object, psymval, addend, reloc_property);
+      break;
+    case elfcpp::R_AARCH64_MOVW_SABS_G0:
+    case elfcpp::R_AARCH64_MOVW_SABS_G1:
+    case elfcpp::R_AARCH64_MOVW_SABS_G2:
+      reloc_status = Reloc::movnz(view, psymval->value(object, addend),
+				  reloc_property);
+      break;
+
     case elfcpp::R_AARCH64_LD_PREL_LO19:
       reloc_status = Reloc::template pcrela_general<32>(
 	  view, object, psymval, addend, address, reloc_property);
@@ -7033,13 +7086,13 @@ Target_aarch64<size, big_endian>::Relocate::relocate(
 	  // Return false to stop further processing this reloc.
 	  return false;
 	}
-      // Fallthrough
+      // Fall through.
     case elfcpp::R_AARCH64_JUMP26:
       if (Reloc::maybe_apply_stub(r_type, relinfo, rela, view, address,
 				  gsym, psymval, object,
 				  target->stub_group_size_))
 	break;
-      // Fallthrough
+      // Fall through.
     case elfcpp::R_AARCH64_TSTBR14:
     case elfcpp::R_AARCH64_CONDBR19:
       reloc_status = Reloc::template pcrela_general<32>(
@@ -8075,7 +8128,7 @@ Target_aarch64<size, big_endian>::is_erratum_835769_sequence(
     typename elfcpp::Swap<32,big_endian>::Valtype insn2)
 {
   uint32_t rt;
-  uint32_t rt2;
+  uint32_t rt2 = 0;
   uint32_t rn;
   uint32_t rm;
   uint32_t ra;
