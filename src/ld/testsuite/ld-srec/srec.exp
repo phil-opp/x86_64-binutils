@@ -282,12 +282,10 @@ proc run_srec_test { test objs } {
 	setup_xfail "msp430*-*-*"
     }
 
-    # SH64 targets cannot convert format in the linker 
-    # using the -oformat command line switch.
-    if [istarget sh64*-*-elf] {
-        # This is what gcc passes to ld by default.
-        set flags "$flags -mshelf32"
-	setup_xfail "sh64*-*-*"
+    # The RISC-V target does not correctly process
+    # relocs when output format is not ELF.
+    if [istarget riscv*-*-*] {
+	setup_xfail "riscv*-*-*"
     }
 
     # V850 targets need libgcc.a
